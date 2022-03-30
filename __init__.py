@@ -73,7 +73,7 @@ def key_maker( password : bytes ,nonce : bytes = None , rounds : int = DEFAULT_O
 """Function Classes Copy Stop Here"""
 
 	
-FULL_BLOCK , EMPTY_BLOCK , BLOCK_LENGTH = "🟢" , "🔴" , 25
+FULL_BLOCK , EMPTY_BLOCK , BLOCK_LENGTH = "🟢" , "🔴" , 10
 
 def eprint(*args, **kwargs):
 
@@ -148,11 +148,13 @@ def subroutine_major(	cipher, function : str  , i_handle , o_handle, size : int 
 		
 		nonlocal running_size , size, EXECUTED_FLAG, st_time 
 
-		while not ((EXECUTED_FLAG) and (running_size == size)):
+		while not EXECUTED_FLAG:
 
 			eprint( f'{(running_size*100)//size}% |{make_block(running_size , size)}| {running_size}/{size}B @{int(running_size/(time.time()-st_time))>>3}KBps' , 
-			end = '')
+			end = '\r')
 			time.sleep(0.2)
+
+		eprint(f'100% |{make_block(1,1)}| {size}/{size} B @{int(running_size/(time.time()-st_time))>>3}KBps' , end = '\n')
 
 		return None 
 
@@ -168,17 +170,18 @@ def subroutine_major(	cipher, function : str  , i_handle , o_handle, size : int 
 			running_size += buffer_size 
 			input_line = i_handle.read(buffer_size)
 
-		EXECUTED_FLAG = False 
 		running_size = size 
-
+		EXECUTED_FLAG = True 
+	
 		return None 
 
 	if progress_bar:
 		
-		from multiprocessing import Process 
+		#from multiprocessing import Process 
+		from threading import Thread as Process
 
-		d = Process(target = display )
-		e = Process(target = execute)
+		d = Process(target = display , daemon = True)
+		e = Process(target = execute , daemon = True)
 
 		st_time = time.time() 
 		time.sleep(10**(-4))		##To avoid divide by zero errors 
@@ -186,10 +189,19 @@ def subroutine_major(	cipher, function : str  , i_handle , o_handle, size : int 
 		d.start()
 		e.start()
 
+		##The below loop is to ensure that the process can be properly exited during keyboardinterrupt
+		try:
+			while not EXECUTED_FLAG: 
+				time.sleep(5)
+
+		except KeyboardInterrupt:
+			
+			sys.exit(2)
+
 		e.join()
 		d.join() 
 
-		return d.exitcode, e.exitcode 
+		return None  
 	else:
 
 		return execute()
