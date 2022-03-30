@@ -25,6 +25,7 @@ from Crypto.Cipher import Salsa20
 from hashlib import sha512 , sha256
 import io 
 import time 
+import warnings
 
 class PasswordError(ValueError):
 	pass
